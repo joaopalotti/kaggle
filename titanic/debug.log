@@ -1,0 +1,61 @@
+10-23 18:53 * root         * INFO     * Writing DEBUG output in : debug.log
+10-23 18:53 * root         * INFO     * Using Preprocessing: normalize
+10-23 18:53 * root         * INFO     * Forcing Balance: -1
+10-23 18:53 * root         * INFO     * Proportional: -1
+10-23 18:53 * root         * INFO     * Using Grid Search: 0
+10-23 18:53 * root         * INFO     * NFolds for CV = 10
+10-23 18:53 * root         * INFO     * Has plot libs: 0
+10-23 18:53 * root         * INFO     * Generating Pickle = 1
+10-23 18:53 * root         * INFO     * Running in parallel = 0
+10-23 18:53 * root         * INFO     * Njobs = 2
+10-23 18:53 * root         * INFO     * Classifiers = etc
+10-23 18:53 * root         * INFO     * Using seed: 29
+10-23 18:53 * root         * INFO     * Loading: positive-.pk and negative-.pk
+10-23 18:53 * root         * INFO     * Processing method used: normalize
+10-23 18:53 * root         * INFO     * Loading the datasets...
+10-23 18:53 * root         * INFO     * Loaded
+10-23 18:53 * root         * INFO     * Transforming datasets into Dictionaries...
+10-23 18:53 * root         * INFO     * Transformed
+10-23 18:53 * root         * INFO     * Using 549 positive examples -- class 0
+10-23 18:53 * root         * INFO     * Using 342 negative examples -- class 1
+10-23 18:53 * root         * INFO     * Vectorizing dictionaries...
+10-23 18:53 * root         * INFO     * Feature Names: ['Age', 'Embarked', 'Fare', 'Parch', 'Pclass', 'Sex', 'Sibsp', 'Title_miss', 'Title_mr', 'Title_mrs', 'Title_other']
+10-23 18:53 * root         * INFO     * Vectorized
+10-23 18:53 * root         * INFO     * Preprocessing data
+10-23 18:53 * root         * INFO     * Data preprocessed
+10-23 18:53 * root         * INFO     * Shuffling the data...
+10-23 18:53 * root         * DEBUG    * X - [[ 0.96115678  0.06276701  0.24779786 ...,  0.          0.          0.        ]
+ [ 0.96115678  0.06276701  0.24779786 ...,  0.          0.          0.        ]
+ [ 0.86439293  0.0751646   0.48856992 ...,  0.          0.          0.        ]
+ ..., 
+ [ 0.62288337  0.04395217  0.78015106 ...,  0.          0.          0.        ]
+ [ 0.91855355  0.02963076  0.39334833 ...,  0.          0.          0.        ]
+ [ 0.95425961  0.05452912  0.28627788 ...,  0.          0.          0.        ]]
+10-23 18:53 * root         * INFO     * Shuffled
+10-23 18:53 * root         * INFO     * Running classifiers...
+10-23 18:53 * classifiers.py * INFO     * Running: Random Forest
+10-23 18:53 * classifiers.py * INFO     * OTHERS ==> {'useGridSearch': False, 'featureNames': ['Age', 'Embarked', 'Fare', 'Parch', 'Pclass', 'Sex', 'Sibsp', 'Title_miss', 'Title_mr', 'Title_mrs', 'Title_other'], 'featuresOutFilename': 'classification.out.pk', 'measureProbas': True, 'tryToMeasureFeatureImportance': True, 'gridParameters': [{'max_features': [None], 'n_estimators': [10, 100, 1000, 10000], 'criterion': ['entropy']}]}
+10-23 18:53 * classifiers.py * INFO     * Classifier ==> ExtraTreesClassifier(bootstrap=False, compute_importances=None,
+           criterion=entropy, max_depth=None, max_features=None,
+           min_density=None, min_samples_leaf=1, min_samples_split=2,
+           n_estimators=120, n_jobs=2, oob_score=False, random_state=0,
+           verbose=0)
+10-23 18:53 * root         * DEBUG    * [0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0]
+10-23 18:53 * classifiers.py * INFO     * Done
+10-23 18:53 * classifiers.py * INFO     *              precision    recall  f1-score   support
+
+   Positive       0.85      0.86      0.86       549
+   Negative       0.77      0.76      0.77       342
+
+avg / total       0.82      0.82      0.82       891
+
+10-23 18:53 * classifiers.py * INFO     * F1 Scores (no average) --> [ 0.8561086   0.76514032]
+10-23 18:53 * classifiers.py * INFO     * sf1 -> 0.765140324963
+10-23 18:53 * classifiers.py * INFO     * GAIN --> inf% 
+10-23 18:53 * classifiers.py * INFO     * mf1 -> 0.810624461124
+10-23 18:53 * classifiers.py * INFO     * GAIN --> 112.62% 
+10-23 18:53 * classifiers.py * INFO     * wf1 -> 0.821191482656
+10-23 18:53 * classifiers.py * INFO     * GAIN --> 74.79% 
+10-23 18:53 * classifiers.py * INFO     * ACC Score --> 0.821548821549
+10-23 18:53 * classifiers.py * INFO     * GAIN --> 33.33% 
+10-23 18:53 * root         * INFO     * Done
