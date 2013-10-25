@@ -51,10 +51,26 @@ gridSVM = [{'kernel': ['rbf'], 'gamma': [1, 0, 1e-1, 1e-2, 1e-3, 1e-4], 'C': [0.
             {'kernel': ['linear'], 'C': [0.01, 0.1,1,10,1000000]}]
 gridSGD = [{}] #http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
 
-def writeOutput(file, testFV, results):
+def voting(listProbas):
+
+    examplePos, exampleNeg = [0] * 418, [0] * 418
+    for subList in listProbas:
+        for (i,e) in zip(range(len(subList)), subList):
+            exampleNeg[i] += e[0]
+            examplePos[i] += e[1]
+    mergedYTest = []
+    for neg, pos in zip(exampleNeg, examplePos):
+        if neg > pos:
+            mergedYTest.append(0)
+        else:
+            mergedYTest.append(1)
+
+    return mergedYTest 
+
+def writeOutput(file, results):
     with open(file, "w") as f:
         f.write("PassengerId,Survived\n")
-        for ((n, r), t) in zip(zip(range(892,892+len(results)), results), testFV):
+        for (n, r) in zip(range(892,892+len(results)), results):
             f.write("%d,%d\n" % (n, r))
             #f.write("%d,%d,%s\n" % (n, r, t[0]))
 
@@ -209,7 +225,7 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
 
     # ================================================================
     if "gbc" in listOfClassifiers:
-        gbc = GradientBoostingClassifier()
+        gbc = GradientBoostingClassifier(n_estimators=300,subsample=0.6,max_depth=4,random_state=nseed)
         results.append(classify(gbc, "GBC", X, y, nCV, nJobs, baselines, {"featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridSGD, "measureProbas":measureProbas}, Xtest))
     # ================================================================
     
@@ -222,17 +238,26 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
    
     fo = open(outfileName, "a")
 
+    listProbas = []
     for r in results:
         clfName = r[0]
         resultMetrics = r[1]
         fo.write("%s, %.3f, %.3f, %.3f, %.3f\n" % (clfName, 100.0*resultMetrics.acc, 100.0*resultMetrics.sf1, 100.0*resultMetrics.mf1, 100.0*resultMetrics.wf1))
         print "%s, %.3f, %.3f, %.3f, %.3f" % (clfName, 100.0*resultMetrics.acc, 100.0*resultMetrics.sf1, 100.0*resultMetrics.mf1, 100.0*resultMetrics.wf1)
         
-        y = r[4]
-        probas = r[5]
+        yTraining = r[4]
+        yTrainingProbas = r[5]
         yTest = r[6]
-        yProbas = r[7]
-        writeOutput(clfName + ".csv", testFV, yTest)
+        yTestProbas = r[7]
+        writeOutput(clfName + ".csv", yTest)
+        
+        listProbas.append(yTestProbas)
+        #for t,p in zip(yTest, yTestProbas):
+        #    print t, p
+
+    mergedYTest = voting(listProbas)
+    writeOutput("merged.csv", mergedYTest)
+
 
     fo.close()
     logging.info("Done")
