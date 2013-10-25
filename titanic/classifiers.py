@@ -37,7 +37,7 @@ def makeReport(y, y_pred, baselines, target_names=['Positive', 'Negative']):
 
     return ResultMetrics(acc, sf1, mf1, wf1)
 
-def runClassifier(clf, X, y, CV, nJobs, others, XTest):
+def runClassifier(clf, X, y, CV, nJobs, others, XTest, valX):
  
     moduleL.info("OTHERS ==> %s", others)
     moduleL.info("Classifier ==> %s", clf)
@@ -64,6 +64,8 @@ def runClassifier(clf, X, y, CV, nJobs, others, XTest):
     probas = []
     preds = []
 
+    #preds = cross_validation.cross_val_score(clf, X, y, scoring="accuracy", cv=CV, n_jobs=nJobs)
+    #probas = []
     kFold = cross_validation.KFold(n=nSamples, n_folds=CV, indices=True)
 
     # Run classifier
@@ -89,6 +91,9 @@ def runClassifier(clf, X, y, CV, nJobs, others, XTest):
     if tryToMeasureFeatureImportance:
         measureFeatureImportance(originalClf, featureNames, featuresOutFilename=featuresOutFilename)
 
+    clf.fit(X[:], y[:])
+    valPreds = list(clf.predict(valX[:]))
+
     #Testing the test set:
     clf.fit(X[:], y[:])
     testPreds = list(clf.predict(XTest[:]))
@@ -97,16 +102,19 @@ def runClassifier(clf, X, y, CV, nJobs, others, XTest):
         testProbas = list(clf.predict_proba(XTest[:]))
 
     moduleL.info("Done")
-    return preds, probas, testPreds, testProbas
+    return preds, probas, testPreds, testProbas, valPreds
 
-def classify(clf, clfName, X, y, nCV, nJobs, baselines, options, XTest):
+def classify(clf, clfName, X, y, nCV, nJobs, baselines, options, XTest, valX, valY):
     moduleL.info("Running: %s", clfName)
        
-    y_ , probas_, testPreds, testProbas = runClassifier(clf, X, y, nCV, nJobs, options, XTest)
+    y_ , probas_, testPreds, testProbas, valPreds = runClassifier(clf, X, y, nCV, nJobs, options, XTest, valX)
     
     resultMetrics = makeReport(y, y_, baselines)
     precRecall = getPrecisionRecall(y, probas_)
     roc = getROC(y, probas_)
+
+    print "Validation Set: "
+    resultMetrics = makeReport(valY, valPreds, baselines)
 
     return (clfName, resultMetrics, precRecall, roc, y_, probas_, testPreds, testProbas)
 

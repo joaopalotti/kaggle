@@ -6,6 +6,8 @@ import sys, pickle
 import csv as csv
 import numpy as np
 
+import random
+random.seed(0)
 
 class Example:
     def __init__(self, label, pclass, age, sex, embarked, sibsp, parch, fare, title, ticket, fareBin, first, last, cabinType, cabinNumber):
@@ -40,7 +42,7 @@ class Example:
         featuresToUse["Sibsp"] = self.sibsp
         featuresToUse["Fare"] = self.fare
         featuresToUse["FareBin"] = self.fareBin
-        #featuresToUse["DeathInFamily"] = self.percentageDiedInFamily
+        featuresToUse["DeathInFamily"] = self.percentageDiedInFamily
         featuresToUse["CabinType"] = self.cabinType
         #featuresToUse["CabinSharingDeath"] = self.percentageCabinDead
 
@@ -58,7 +60,6 @@ class ProblemType:
     def __init__(self, data):
     #PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
 
-        #TODO: decide what to do with invalid values
         self.id = data[0]
         self.label = int(data[1]) if data[1] != None else None
         self.pclass = int(data[2])
@@ -211,30 +212,44 @@ def calculateTicket(data):
 
     return dict(ids_ticket)
 
+def mapCabin(cabin):
+    cabinType = -1
+    if "A" in cabin:
+        cabinType = 0
+    elif "B" in cabin:
+        cabinType = 1
+    elif "C" in cabin:
+        cabinType = 2
+    elif "D" in cabin:
+        cabinType = 3
+    elif "E" in cabin:
+        cabinType = 4
+    elif "F" in cabin:
+        cabinType = 5
+    elif "G" in cabin:
+        cabinType = 6
+    return cabinType
+
 def calculateCabin(data):
-    ids_cabin = [(example.id, example.cabin, example.label) for example in data]
+    ids_cabin = [(example.id, example.cabin, example.label, example.pclass) for example in data]
     idsType = {}
     idsNumber = {}
     
-    for id, cabin, label in ids_cabin:
-        cabinType = -1
-        if "A" in cabin:
-            cabinType = 0
-        elif "B" in cabin:
-            cabinType = 1
-        elif "C" in cabin:
-            cabinType = 2
-        elif "D" in cabin:
-            cabinType = 3
-        elif "E" in cabin:
-            cabinType = 4
-        elif "F" in cabin:
-            cabinType = 5
-        elif "G" in cabin:
-            cabinType = 6
-        else:
-            cabinType = 7
-            #print id, cabin, label
+    pclassCabin = defaultdict(list)
+    for _, cabin, _ , pclass in ids_cabin:
+        pclassCabin[pclass].append( mapCabin(cabin) )
+    
+    for pclass, values in pclassCabin.iteritems():
+        pclassCabin[pclass] = Counter(values)
+    
+    for id, cabin, label, pclass in ids_cabin:
+        cabinType = mapCabin(cabin) 
+        
+        if cabinType == -1:
+        # if the cabin is not informed, we atribute the cabin to the most common one used in the class the person belongs
+            common = pclassCabin[pclass].most_common(1)[0][0]
+            cabinType = common
+            #print "Pclass = ", pclass, " common = ", common
 
         idsType[id] = cabinType
         idsNumber[id] = cabin
@@ -262,13 +277,33 @@ def readInput(filename, labelToFilter=None):
 
 ##### ========================================================================================== #####
 
-def createFV(filename, label):
+
+def createValidation(data):
+    validation = []
+    #print len(data), len(validation)
+    #10% for validation
+    just10p = int(len(data) / 10)
+    for _ in range(just10p):
+        val = random.randint(0, len(data))
+        validation.append(data[val])
+        del data[val]
+
+    print len(data), len(validation)
+    return data, validation
+
+def createFV(filename, label, usesValidation=False):
     data = readInput(filename, label)
+    validationDict = {}
+
+    if usesValidation:
+        data, validation = createValidation(data)
+        validationDict = createDictOfExamples(validation, label)
+
     exampleDict = createDictOfExamples(data, label)
     
-    return exampleDict
+    return exampleDict, validationDict
 
-def posProcessName(neg, pos, test):
+def posProcessName(neg, pos, test, valNeg, valPos):
     # check the number of relatives that are died
     name_IdStatus = defaultdict(list)
     for (id, example) in neg.iteritems():
@@ -279,46 +314,53 @@ def posProcessName(neg, pos, test):
     
     for (id, example) in test.iteritems():
         name_IdStatus[example.lastName].append([id, example.label])
+   
+    for (id, example) in valNeg.iteritems():
+        name_IdStatus[example.lastName].append([id, None])
     
+    for (id, example) in valPos.iteritems():
+        name_IdStatus[example.lastName].append([id, None])
+
+    percentageOfSurvivers = len(pos) / (len(neg) + len(pos))
     for (name, idStatusList) in name_IdStatus.iteritems():
-        #totalSum = sum( ( status for (id, status) in idStatusList if status != None) ) / len(idStatusList)
-        totalSum = sum( ( 0.5 if status == None else status for (id, status) in idStatusList ) ) / len(idStatusList) 
-        #print name, totalSum, len(idStatusList)
-        #for (_, status) in idStatusList:
-        #    print status
+        
+        sumPerId = defaultdict(float)
+        totalSum = np.mean( [ percentageOfSurvivers if status == None else status for (id, status) in idStatusList ] )
+        for id, status in idStatusList:
+            #sumPerId[id] = totalSum - status if status != None else totalSum - percentageOfSurvivers
+            sumPerId[id] = totalSum 
 
         for (id, _) in idStatusList:
             if id in neg:
-                neg[id].percentageDiedInFamily = totalSum
+                neg[id].percentageDiedInFamily = sumPerId[id]
             elif id in pos:
-                pos[id].percentageDiedInFamily = totalSum
+                pos[id].percentageDiedInFamily = sumPerId[id]
             elif id in test:
-                test[id].percentageDiedInFamily = totalSum
-                print id, totalSum
+                test[id].percentageDiedInFamily = sumPerId[id]
+            
+            elif id in valPos:
+                valPos[id].percentageDiedInFamily = sumPerId[id]
+            elif id in valNeg:
+                valNeg[id].percentageDiedInFamily = sumPerId[id]
 
-    return neg, pos, test
-
-def posProcessAlone(neg, pos, test):
-    
-
-    return neg, pos, test
+    return neg, pos, test, valNeg, valPos
 
 def posProcessCabin(neg, pos, test):
     
     cabin_IdStatus = defaultdict(list)
     for (id, example) in neg.iteritems():
-        cabin_IdStatus[example.cabinNumber].append([id, example.label])
+        cabin_IdStatus[example.cabinType].append([id, example.label])
     
     for (id, example) in pos.iteritems():
-        cabin_IdStatus[example.cabinNumber].append([id, example.label])
+        cabin_IdStatus[example.cabinType].append([id, example.label])
     
     for (id, example) in test.iteritems():
-        cabin_IdStatus[example.cabinNumber].append([id, example.label])
+        cabin_IdStatus[example.cabinType].append([id, example.label])
  
     for (cabin, idStatusList) in cabin_IdStatus.iteritems():
-        if not cabin:
-            continue
-        totalSum = sum( ( 0.5 if status == None else status for (id, status) in idStatusList ) ) / len(idStatusList)
+        #if not cabin:
+        #    continue
+        totalSum = np.mean( [0.5 if status == None else status for (id, status) in idStatusList] )
 
         for (id, _) in idStatusList:
             if id in neg:
@@ -330,25 +372,27 @@ def posProcessCabin(neg, pos, test):
     
     return neg, pos, test
 
-def posProcess(neg, pos, test):
-    neg, pos, test = posProcessName(neg, pos, test)
-    neg, pos, test = posProcessCabin(neg, pos, test)
-    neg, pos, test = posProcessAlone(neg, pos, test)
-    return neg, pos, test
+def posProcess(neg, pos, test, valNeg, valPos):
+    neg, pos, test, valNeg, valPos = posProcessName(neg, pos, test, valNeg, valPos)
+    #neg, pos, test = posProcessCabin(neg, pos, test)
+    #neg, pos, test = posProcessAlone(neg, pos, test)
+    return neg, pos, test, valNeg, valPos
 
 def readData(filename, explanation):
     #
     #preprocessFamilies(filename, "test.csv")
 
     #find file and read it:
-    negativeExamples = createFV(filename, 0)
-    positiveExamples = createFV(filename, 1)
-    testExamples = createFV("test.csv", None)
+    negativeExamples, validationNeg = createFV(filename, 0, True)
+    positiveExamples, validationPos = createFV(filename, 1, True)
+    testExamples, _ = createFV("test.csv", None)
 
-    negativeExamples, positiveExamples, testExamples = posProcess(negativeExamples, positiveExamples, testExamples)
+    negativeExamples, positiveExamples, testExamples, validationNeg, validationPos = posProcess(negativeExamples, positiveExamples, testExamples, validationNeg, validationPos)
     
     negativeOutputFile = "negative-%s.pk" % (explanation)
+    valNegativeOutputFile = "negative-validation.pk"
     positiveOutputFile = "positive-%s.pk" % (explanation)
+    valPositiveOutputFile = "positive-validation.pk"
     testOutputFile = "test-%s.pk" % (explanation)
    
     ####### Save and Load the Features
@@ -356,9 +400,17 @@ def readData(filename, explanation):
         pickle.dump(negativeExamples, output, pickle.HIGHEST_PROTOCOL)
         print "Created file: %s with %d examples" % (negativeOutputFile, len(negativeExamples))
     
+    with open(valNegativeOutputFile, 'wb') as output:
+        pickle.dump(validationNeg, output, pickle.HIGHEST_PROTOCOL)
+        print "Created file: %s with %d examples" % (valNegativeOutputFile, len(validationNeg))
+    
     with open(positiveOutputFile, 'wb') as output:
         pickle.dump(positiveExamples, output, pickle.HIGHEST_PROTOCOL)
         print "Created File: %s with %d examples" % (positiveOutputFile, len(positiveExamples))
+    
+    with open(valPositiveOutputFile, 'wb') as output:
+        pickle.dump(validationPos, output, pickle.HIGHEST_PROTOCOL)
+        print "Created file: %s with %d examples" % (valPositiveOutputFile, len(validationPos))
     
     with open(testOutputFile, 'wb') as output:
         pickle.dump(testExamples, output, pickle.HIGHEST_PROTOCOL)

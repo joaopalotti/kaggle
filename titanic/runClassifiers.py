@@ -93,7 +93,9 @@ def transformeInDict(exampleVector, nseed, n=-1, proportional=-1):
 def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanation, gridSearch, generatePickle, hasPlotLibs, paralled, nJobs, listOfClassifiers, outfileName, nCV, measureProbas):
    
     positiveOutputFile = "positive-%s.pk" % (explanation)
+    validationPosOutputFile = "positive-validation.pk"
     negativeOutputFile = "negative-%s.pk" % (explanation)
+    validationNegOutputFile = "negative-validation.pk"
     testOutputFile = "test-%s.pk" % (explanation)
 
     logging.info("Using seed: %d", nseed)
@@ -119,8 +121,14 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
     with open(negativeOutputFile, 'rb') as input:
         negativeFV = pickle.load(input)
     
+    with open(validationNegOutputFile, 'rb') as input:
+        validationNegFV = pickle.load(input)
+    
     with open(positiveOutputFile, 'rb') as input:
         positiveFV = pickle.load(input)
+    
+    with open(validationPosOutputFile, 'rb') as input:
+        validationPosFV = pickle.load(input)
 
     with open(testOutputFile, 'rb') as input:
         testFV = pickle.load(input)
@@ -133,6 +141,11 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
     ld2, ll2 = transformeInDict(sorted(positiveFV.iteritems()), nseed, forceBalance, proportional)
     ldTest, llTest = transformeInDict(testFV, nseed, forceBalance, proportional)
 
+    valldNeg, valllNeg = transformeInDict(sorted(validationNegFV.iteritems()), nseed, forceBalance, proportional)
+    valldPos, valllPos = transformeInDict(sorted(validationPosFV.iteritems()), nseed, forceBalance, proportional)
+    valY = np.array( valllNeg + valllPos)
+    valDicts = valldNeg + valldPos
+    
     logging.info("Transformed")
     
     listOfDicts = ld1 + ld2
@@ -160,9 +173,12 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
     logging.info("Data preprocessed")
 
     #Prepare Test data: 
-    vecTest, Xtest = vectorizeData(ldTest)
+    Xtest = vec.transform(ldTest).toarray()
     Xtest = preprocessing(Xtest, preProcessingMethod)
 
+    valX = vec.transform(valDicts).toarray()
+    valX = preprocessing(valX, preProcessingMethod)
+    
     ####
     ### Shuffer samples  (TODO: Cross-validation)
     ##
@@ -172,6 +188,11 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
     newIndices = shuffleIndices(n_samples, nseed)
     X = X[newIndices]
     y = y[newIndices]
+
+    n_samples_val = len(valY)
+    newIndices = shuffleIndices(n_samples_val, nseed)
+    valX = valX[newIndices]
+    valY = valY[newIndices]
 
     logging.debug("X - %s", X)
     # Shuffle samples
@@ -198,9 +219,9 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
         knnc = KNeighborsClassifier(n_neighbors=classifyParameters["KNN-K"])
         results.append(classify(knnc, "KNN", X, y, nCV, nJobs, baselines, {"useGridSearch":gridSearch, "gridParameters":gridKNN, "measureProbas":measureProbas}, Xtest))
     # ================================================================
-    if "lrc" in listOfClassifiers:
+    if "lrc" in listOfClassifiers or "lgr" in listOfClassifiers or "lr" in listOfClassifiers:
         lrc = LogisticRegression(C=classifyParameters["LR-C"])
-        results.append(classify(lrc, "Logistic Regression", X, y, nCV, nJobs, baselines, {"useGridSearch":gridSearch, "gridParameters":gridLR, "measureProbas":measureProbas}, Xtest))
+        results.append(classify(lrc, "Logistic Regression", X, y, nCV, nJobs, baselines, {"useGridSearch":gridSearch, "gridParameters":gridLR, "measureProbas":measureProbas}, Xtest, valX, valY))
     # ================================================================
     if "dtc" in listOfClassifiers:
         dtc = DecisionTreeClassifier( criterion=classifyParameters["DT-criterion"], max_features=classifyParameters["DT-max_features"] )
@@ -216,17 +237,17 @@ def runClassify(preProcessingMethod, forceBalance, proportional, nseed, explanat
     # ================================================================
     if "etc" in listOfClassifiers:
         etc = ExtraTreesClassifier(random_state=0, n_jobs=nJobs, n_estimators=classifyParameters["ETC-n_estimators"], criterion=classifyParameters["ETC-criterion"], max_features=classifyParameters["ETC-max_features"])
-        results.append(classify(etc, "Random Forest", X, y, nCV, nJobs, baselines, {"tryToMeasureFeatureImportance":measureProbas, "featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridETC, "measureProbas":measureProbas}, Xtest))
+        results.append(classify(etc, "Random Forest", X, y, nCV, nJobs, baselines, {"tryToMeasureFeatureImportance":measureProbas, "featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridETC, "measureProbas":measureProbas}, Xtest, valX, valY))
     
     # ================================================================
     if "sgd" in listOfClassifiers:
         sgd = SGDClassifier(n_jobs=nJobs)
-        results.append(classify(sgd, "SGD", X, y, nCV, nJobs, baselines, {"featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridSGD, "measureProbas":measureProbas}, Xtest))
+        results.append(classify(sgd, "SGD", X, y, nCV, nJobs, baselines, {"featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridSGD, "measureProbas":measureProbas}, Xtest, valX, valY))
 
     # ================================================================
     if "gbc" in listOfClassifiers:
         gbc = GradientBoostingClassifier(n_estimators=300,subsample=0.6,max_depth=4,random_state=nseed)
-        results.append(classify(gbc, "GBC", X, y, nCV, nJobs, baselines, {"featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridSGD, "measureProbas":measureProbas}, Xtest))
+        results.append(classify(gbc, "GBC", X, y, nCV, nJobs, baselines, {"featuresOutFilename":(outfileName + ".pk"), "featureNames":vec.get_feature_names(), "useGridSearch":gridSearch, "gridParameters":gridSGD, "measureProbas":measureProbas}, Xtest, valX, valY))
     # ================================================================
     
     
