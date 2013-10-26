@@ -10,10 +10,11 @@ import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 
+
 csv_file_object = csv.reader(open('fulltrain.csv', 'rb')) #Load in the training csv file
 train_data=[] #Creat a variable called 'train_data'
 for row in csv_file_object: #Skip through each row in the csv file
-    train_data.append(row[1:]) #adding each row to the data variable
+    train_data.append(row[:]) #adding each row to the data variable
 train_data = np.array(train_data) #Then convert from a list to an array
 
 #I need to convert all strings to integer classifiers:
@@ -57,7 +58,7 @@ train_data = np.array(train_data) #Then convert from a list to an array
 test_file_object = csv.reader(open('test.csv', 'rb')) #Load in the test csv file
 test_data=[] #Creat a variable called 'test_data'
 for row in test_file_object: #Skip through each row in the csv file
-    test_data.append(row[1:]) #adding each row to the data variable
+    test_data.append(row[:]) #adding each row to the data variable
 test_data = np.array(test_data) #Then convert from a list to an array
 
 #The data is now ready to go. So lets train then test!
@@ -80,9 +81,23 @@ output = forest.predict(test_data)
 outputExtraTree = extraTree.predict(test_data)
 
 open_file_object = csv.writer(open("forest.csv", "wb"))
-open_file_object.writerow(["PassengerId","Survived"])
-open_file_object.writerows(zip(ids, output))
+#open_file_object.writerow(["PassengerId","Survived"])
+open_file_object.writerows(output)
 
 open_file_object = csv.writer(open("extraforest.csv", "wb"))
-open_file_object.writerow(["PassengerId","Survived"])
-open_file_object.writerows(zip(ids, outputExtraTree))
+#open_file_object.writerow(["PassengerId","Survived"])
+open_file_object.writerows(outputExtraTree)
+
+
+
+#grid search for svm
+from sklearn.svm import SVC
+from sklearn.grid_search import GridSearchCV
+
+svcmodel = SVC(c=1.0, kernel="rbf", degree=3, gamma=0.0, coef0=0.0, tol=0.001, max_iter=-1)
+svcmodel.fit(train_data[0::,1:], train_data[0::,0])
+
+tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000]}, {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+gridmodel = GridSearchCV(SVC(C=1), tuned_parameters, scoring="accuracy", n_jobs=-1)
+gridmodel.fit(X, y)
+
