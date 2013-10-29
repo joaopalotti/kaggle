@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 from sklearn import cross_validation
 from sklearn.svm import SVC
 from sklearn.grid_search import GridSearchCV
-import pylab as pl
+#import pylab as pl
 from sklearn import preprocessing
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -128,14 +128,13 @@ print 'Training '
 nb = GaussianNB().fit(X, y)
 nb_probas = nb.predict_proba(X)
 nb_test_probas = nb.predict_proba(test_data)
-print "Mean NB acc = ", np.mean( cross_validation.cross_val_score(nb, X, y, scoring="accuracy", cv=30, n_jobs=2))
 
-forest = RandomForestClassifier(n_estimators=100, n_jobs=2, random_state=0)
+forest = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=0)
 forest = forest.fit(X, y)
 forest_probas = forest.predict_proba(X)
 forest_test_probas = forest.predict_proba(test_data)
 
-extraTree = ExtraTreesClassifier(n_estimators=120, n_jobs=2, random_state=0) 
+extraTree = ExtraTreesClassifier(n_estimators=120, n_jobs=-1, random_state=0) 
 extraTree = extraTree.fit(X, y)
 extraTree_probas = extraTree.predict_proba(X)
 extraTree_test_probas = extraTree.predict_proba(test_data)
@@ -160,12 +159,13 @@ knn_test_probas = knn.predict_proba(test_data)
 #X_extra = np.hstack((X_extra, nb_probas))
 #X_extra = np.hstack((X_extra, svc_probas))
 
-print "Initial Mean SVC acc = ", np.mean(cross_validation.cross_val_score(svc, X, y, scoring="accuracy", cv=5, n_jobs=1))
+print "Initial Mean NB acc = ", np.mean( cross_validation.cross_val_score(nb, X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean SVC acc = ", np.mean(cross_validation.cross_val_score(svc, X, y, scoring="accuracy", cv=5, n_jobs=-1))
 #print "Mean Forest acc = ", np.mean(cross_validation.cross_val_score(forest, X, y, scoring="accuracy", cv=5, n_jobs=1))
-print "Initial Mean ExtraTree acc = ", np.mean(cross_validation.cross_val_score(extraTree, X, y, scoring="accuracy", cv=5, n_jobs=1))
+print "Initial Mean ExtraTree acc = ", np.mean(cross_validation.cross_val_score(extraTree, X, y, scoring="accuracy", cv=5))
 #print "Mean ExtraTree acc + extra = ", np.mean(cross_validation.cross_val_score(extraTree, X_extra, y, scoring="accuracy", cv=5, n_jobs=1))
-print "Initial Mean LRC = ", np.mean(cross_validation.cross_val_score(lrc, X, y, scoring="accuracy", cv=5, n_jobs=1))
-print "Initial Mean KNN = ", np.mean(cross_validation.cross_val_score(knn, X, y, scoring="accuracy", cv=5, n_jobs=1))
+print "Initial Mean LRC = ", np.mean(cross_validation.cross_val_score(lrc, X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean KNN = ", np.mean(cross_validation.cross_val_score(knn, X, y, scoring="accuracy", cv=5, n_jobs=-1))
 
 #X_probas = np.hstack( (forest_probas, extraTree_probas) )
 #X_probas = np.hstack( (X_probas, nb_probas) )
@@ -179,17 +179,17 @@ print "Initial Mean KNN = ", np.mean(cross_validation.cross_val_score(knn, X, y,
 def aumenta(X, y, test_data):
 
     #extraTree
-    gridExtra = GridSearchCV(ExtraTreesClassifier(), {'n_estimators':[ 10, 100, 500], 'max_features':["auto", "log2", 1, 4] }).fit(X,y)
-    extraTree = ExtraTreesClassifier(n_estimators=gridExtra.best_params_["n_estimators"], max_features=gridExtra.best_params_["max_features"], n_jobs=2, random_state=0).fit(X, y)
+    gridExtra = GridSearchCV(ExtraTreesClassifier(), {'n_estimators':[ 10, 100, 500], 'max_features':["auto", "log2", 1, 4] }, n_jobs=-1).fit(X,y)
+    extraTree = ExtraTreesClassifier(n_estimators=gridExtra.best_params_["n_estimators"], max_features=gridExtra.best_params_["max_features"], n_jobs=-1, random_state=0).fit(X, y)
     extraTree_probas = extraTree.predict_proba(test_data)
 
-    gridSVC = GridSearchCV(SVC(C=1), {'C':[ 1, 10, 100,1000,10000], 'gamma':[0,1,100,1000,10000]} ).fit(preprocessing.scale(X),y)
+    gridSVC = GridSearchCV(SVC(C=1), {'C':[ 1, 10, 100,1000,10000], 'gamma':[0,1,100,1000,10000]}, n_jobs=-1 ).fit(preprocessing.scale(X),y)
     svc_probas = SVC(probability=True, C=gridSVC.best_params_['C'], gamma=gridSVC.best_params_['gamma'] ).fit(preprocessing.scale(X),y).predict_proba(preprocessing.scale(test_data))
 
-    gridLrc = GridSearchCV(lrc, {'C':[0.001, 1, 5, 10, 100, 200, 500, 10000], 'fit_intercept':[False, True]} ).fit(X,y)
+    gridLrc = GridSearchCV(lrc, {'C':[0.001, 1, 5, 10, 100, 200, 500, 10000], 'fit_intercept':[False, True]}, n_jobs=-1 ).fit(X,y)
     lrc_probas = LogisticRegression(C=gridLrc.best_params_['C'], fit_intercept=gridLrc.best_params_['fit_intercept']).fit(X, y).predict_proba(test_data)
     
-    gridKnn = GridSearchCV(KNeighborsClassifier(), {'n_neighbors':[1,2,3,4,5,6,7,8,9,10,100, 10000]} ).fit(X,y)
+    gridKnn = GridSearchCV(KNeighborsClassifier(), {'n_neighbors':[1,2,3,4,5,6,7,8,9,10,100, 10000]}, n_jobs=-1 ).fit(X,y)
     knn_probas = KNeighborsClassifier(n_neighbors=gridKnn.best_params_["n_neighbors"]).fit(X,y).predict_proba(test_data)
     
     thresold = 0.95
@@ -209,7 +209,7 @@ def aumenta(X, y, test_data):
     y = np.hstack((y, np.ones(ones.shape[0])))
     y = np.float32(y)
     
-    print "Mean Default SVC = ", np.mean(cross_validation.cross_val_score(SVC(), X, y, scoring="accuracy", cv=5, n_jobs=1))
+    print "Mean Default SVC = ", np.mean(cross_validation.cross_val_score(SVC(), X, y, scoring="accuracy", cv=5, n_jobs=-1))
     print "Added =", X.shape[0] - before
     return X, y, rest
 
@@ -232,7 +232,7 @@ def ensemble(lrc_probas, extra_probas, svm_probas, nb_probas, knn_probas):
     probasFinal = probasFinal.astype(int)
     return probasFinal
 
-extra_probas = ExtraTreesClassifier(n_estimators=100, max_features=4, n_jobs=2, random_state=0).fit(X, y).predict_proba(test_data)
+extra_probas = ExtraTreesClassifier(n_estimators=100, max_features=4, n_jobs=-1, random_state=0).fit(X, y).predict_proba(test_data)
 lrc_probas = LogisticRegression(C=100).fit(X, y).predict_proba(test_data)
 nb_probas = GaussianNB().fit(X, y).predict_proba(test_data)
 knn_probas = KNeighborsClassifier(n_neighbors=1).fit(X,y).predict_proba(test_data)
