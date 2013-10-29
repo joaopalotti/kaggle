@@ -125,56 +125,14 @@ y = train_data[:, 0]
 test_data = np.float32(test_data)
 
 print 'Training '
-nb = GaussianNB().fit(X, y)
-#nb_probas = nb.predict_proba(X)
-#nb_test_probas = nb.predict_proba(test_data)
 
-forest = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=0)
-forest = forest.fit(X, y)
-#forest_probas = forest.predict_proba(X)
-#forest_test_probas = forest.predict_proba(test_data)
-
-extraTree = ExtraTreesClassifier(n_estimators=120, n_jobs=-1, random_state=0) 
-extraTree = extraTree.fit(X, y)
-#extraTree_probas = extraTree.predict_proba(X)
-#extraTree_test_probas = extraTree.predict_proba(test_data)
-
-svc = SVC(C=10, probability=True, kernel="rbf", random_state=0)
-svc = svc.fit(X,y)
-#svc_probas = svc.predict_proba(X)
-#svc_test_probas = svc.predict_proba(test_data)
-
-lrc = LogisticRegression(C=1, random_state=0)
-lrc = lrc.fit(X, y)
-#lrc_probas = extraTree.predict_proba(X)
-#lrc_test_probas = extraTree.predict_proba(test_data)
-
-
-knn = KNeighborsClassifier(n_neighbors=1)
-knn = knn.fit(X,y)
-#knn_probas = knn.predict_proba(X)
-#knn_test_probas = knn.predict_proba(test_data)
-
-#X_extra = np.hstack((X, extraTree_probas))
-#X_extra = np.hstack((X_extra, nb_probas))
-#X_extra = np.hstack((X_extra, svc_probas))
-
-print "Initial Mean NB acc = ", np.mean( cross_validation.cross_val_score(nb, X, y, scoring="accuracy", cv=5, n_jobs=-1))
-print "Initial Mean SVC acc = ", np.mean(cross_validation.cross_val_score(svc, X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean NB acc = ", np.mean( cross_validation.cross_val_score(GaussianNB(), X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean SVC acc = ", np.mean(cross_validation.cross_val_score(SVC(), X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean ExtraTree acc = ", np.mean(cross_validation.cross_val_score(ExtraTreesClassifier(), X, y, scoring="accuracy", cv=5))
+print "Initial Mean LRC = ", np.mean(cross_validation.cross_val_score(LogisticRegression(), X, y, scoring="accuracy", cv=5, n_jobs=-1))
+print "Initial Mean KNN = ", np.mean(cross_validation.cross_val_score(KNeighborsClassifier(), X, y, scoring="accuracy", cv=5, n_jobs=-1))
 #print "Mean Forest acc = ", np.mean(cross_validation.cross_val_score(forest, X, y, scoring="accuracy", cv=5, n_jobs=1))
-print "Initial Mean ExtraTree acc = ", np.mean(cross_validation.cross_val_score(extraTree, X, y, scoring="accuracy", cv=5))
 #print "Mean ExtraTree acc + extra = ", np.mean(cross_validation.cross_val_score(extraTree, X_extra, y, scoring="accuracy", cv=5, n_jobs=1))
-print "Initial Mean LRC = ", np.mean(cross_validation.cross_val_score(lrc, X, y, scoring="accuracy", cv=5, n_jobs=-1))
-print "Initial Mean KNN = ", np.mean(cross_validation.cross_val_score(knn, X, y, scoring="accuracy", cv=5, n_jobs=-1))
-
-#X_probas = np.hstack( (forest_probas, extraTree_probas) )
-#X_probas = np.hstack( (X_probas, nb_probas) )
-#X_probas = np.hstack( (X_probas, svc_probas) )
-#print "Mean Only Probas = ", np.mean( cross_validation.cross_val_score(extraTree, X_probas, y, scoring="accuracy", cv=5, n_jobs=1))
-
-#X_test_probas = np.hstack( (forest_test_probas, extraTree_test_probas) )
-#X_test_probas = np.hstack( (X_test_probas, nb_test_probas) )
-#X_test_probas = np.hstack( (X_test_probas, svc_test_probas) )
 
 def gridSearchTestData(X, y, test):
 
@@ -185,7 +143,7 @@ def gridSearchTestData(X, y, test):
     gridSVC = GridSearchCV(SVC(C=1), {'C':[ 1, 10, 100,1000,10000], 'gamma':[0,1,100,1000,10000]}, n_jobs=-1 ).fit(preprocessing.scale(X),y)
     svc_probas = SVC(probability=True, C=gridSVC.best_params_['C'], gamma=gridSVC.best_params_['gamma'] ).fit(preprocessing.scale(X),y).predict_proba(preprocessing.scale(test))
 
-    gridLrc = GridSearchCV(lrc, {'C':[0.001, 1, 5, 10, 100, 200, 500, 10000], 'fit_intercept':[False, True]}, n_jobs=10 ).fit(X,y)
+    gridLrc = GridSearchCV(LogisticRegression(), {'C':[0.001, 1, 5, 10, 100, 200, 500, 10000], 'fit_intercept':[False, True]}, n_jobs=10 ).fit(X,y)
     lrc_probas = LogisticRegression(C=gridLrc.best_params_['C'], fit_intercept=gridLrc.best_params_['fit_intercept']).fit(X, y).predict_proba(test)
 
     gridKnn = GridSearchCV(KNeighborsClassifier(), {'n_neighbors':[1,2,3,4,5,6,7,8,9,10,100, 10000]}, n_jobs=10 ).fit(X,y)
@@ -208,8 +166,7 @@ def aumenta(X, y, test):
     # Test examples that are 1
     ones = test[(extra_probas[:,1] >= thresold) | (svc_probas[:,1] >= thresold) | (lrc_probas[:,1] >= thresold) | (knn_probas[:,1] >= thresold) | (nb_probas[:,1] >= thresold) ]
 
-    rest = test[(extra_probas[:,1] < thresold) | (svc_probas[:,1] < thresold) | (lrc_probas[:,1] < thresold) | (knn_probas[:,1] < thresold) | (extra_probas[:,0] < thresold) | (svc_probas[:,0] < thresold) | (lrc_probas[:,0] < thresold) | (knn_probas[:,0] < thresold) | (nb_probas[:,0] < thresold) | (nb_probas[:,1] < thresold)]
-
+    rest = test[((extra_probas[:,1] < thresold) & (svc_probas[:,1] < thresold) & (lrc_probas[:,1] < thresold) & (knn_probas[:,1] < thresold) & (nb_probas[:,1] < thresold)) | ((extra_probas[:,0] < thresold) & (svc_probas[:,0] < thresold) & (lrc_probas[:,0] < thresold) & (knn_probas[:,0] < thresold) & (nb_probas[:,0] < thresold) )]
     before = X.shape[0]
     print "Before =", before
     X = np.vstack((X,zeros))
