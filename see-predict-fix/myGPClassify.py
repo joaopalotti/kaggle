@@ -53,6 +53,14 @@ def safeDiv(left, right):
     except ZeroDivisionError:
         return 0.0
 
+def saveDiff(a,b):
+    if a - b > 0:
+        return a - b
+    else:
+        return 0.0
+
+def absDiff(a,b):
+    return abs(a-b)
 
 def getInputFile(fileName):
     
@@ -77,7 +85,8 @@ pset = gp.PrimitiveSet("MAIN", 5)
 pset.addPrimitive(safeDiv, 2)
 pset.addPrimitive(operator.add, 2)
 pset.addPrimitive(operator.mul, 2)
-#pset.addPrimitive(operator.sub, 2)
+pset.addPrimitive(absDiff, 2)
+pset.addPrimitive(saveDiff, 2)
 
 def myEphemeral():
     return random.random()
