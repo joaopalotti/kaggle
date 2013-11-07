@@ -1,5 +1,5 @@
 import csv as csv
-import math
+import math, sys
 from collections import Counter
 import numpy as np
 from datetime import datetime
@@ -14,8 +14,11 @@ from sklearn.linear_model import BayesianRidge, LinearRegression, RidgeCV, Ridge
 from sklearn.metrics import make_scorer
 from sklearn.isotonic import IsotonicRegression
 from sklearn.decomposition import PCA, TruncatedSVD
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, scale, normalize
 from sklearn.grid_search import GridSearchCV
+
+normalizeit = False
+trainingStats = True
 
 #inTrain = csv.reader( open("smalltrain.csv", "rb") )
 inTrain = csv.reader( open("train.csv", "rb") )
@@ -62,9 +65,9 @@ def findClosestCity(lat, log):
         return [3], minDist
 
 def findSource(source):
-    if source == 'remote_api_created':
+    if source  == 'NA': 
         return [0]
-    elif source  == 'NA': 
+    elif source == 'remote_api_created':
         return [1]
     elif source == 'city_initiated':
         return [3]
@@ -76,12 +79,12 @@ def findSource(source):
         return [5]
     elif source == 'android':
         return [6]
-    elif source ==  'Mobile Site': 
+    elif source == 'Mobile Site': 
         return [6]
     elif source == 'iphone':
         return [6] 
 
-#for row in data[0:-1:1000]:
+#for row in data[0:-1:10]:
 for row in data:
     #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
     id, latitude, longitude, summary, description, num_votes, num_comments, num_views, source, created_time, tag_type = row
@@ -112,8 +115,8 @@ Xsource = sohe.fit_transform(sourceL).toarray()
 print "Vectorizing"
 XminDists = np.array(minDists)
 
-vectorizer = HashingVectorizer(n_features=100, strip_accents="ascii")  # training: 0.971392246367
-#vectorizer = HashingVectorizer(n_features=1000, strip_accents="ascii")
+#vectorizer = HashingVectorizer(n_features=100, strip_accents="ascii")  # training: 0.971392246367
+vectorizer = HashingVectorizer(n_features=1000, strip_accents="ascii")
 #vectorizer = HashingVectorizer(n_features=2000, strip_accents="ascii")
 #vectorizer = CountVectorizer()
 #tfidf = TfidfTransformer()
@@ -125,7 +128,7 @@ text = vectorizer.fit_transform(alltext).toarray()
 times = np.array(times).astype(int)
 
 #X = np.column_stack((text,times,Xcity))
-pca = PCA(n_components=10, whiten=False)
+sourcepca = PCA(n_components=5, whiten=False)
 svd = TruncatedSVD(n_components=20, random_state=29)
 
 #text = pca.fit_transform(text)
@@ -133,19 +136,25 @@ svd = TruncatedSVD(n_components=20, random_state=29)
 
 #X = np.column_stack((text,times))
 #X = np.column_stack((text,times,Xcity,XminDists))
+
+Xsource = sourcepca.fit_transform(Xsource)
 X = np.column_stack((text,times,Xcity,XminDists,Xsource))
+#X = np.column_stack((text,times,Xcity,XminDists))
 #X = np.column_stack((dt,st,tt,times))
 y_votes = np.array(votes).astype(int)
 y_comments = np.array(comments).astype(int)
 y_views = np.array(views).astype(int)
 
+if normalizeit:
+    X = normalize(X)
 #X = svd.fit_transform(X)
 #X = pca.fit_transform(X)
+
 print "X created"
 
 def calculateRMSLE(actuals, predictions):
     predictions[ predictions < 0 ] = 0.0
-    return math.sqrt( 1.0 / predictions.shape[0] * np.sum(np.power(np.log((predictions + 1)) - np.log((actuals + 1)), 2))) 
+    return math.sqrt( 1.0 / (3 * predictions.shape[0]) * np.sum(np.power(np.log((predictions + 1)) - np.log((actuals + 1)), 2))) 
  
 my_custom_scorer = make_scorer(calculateRMSLE, greater_is_better=True)
 
@@ -153,13 +162,19 @@ my_custom_scorer = make_scorer(calculateRMSLE, greater_is_better=True)
 def predict(X, y, Xtest=None, clf=None):
 
     if clf == None:
-        clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=8), n_estimators=100, random_state=29) #best for view so far
+        #clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=8), n_estimators=100, random_state=29) #best for view so far
         #clf = AdaBoostRegressor(BayesianRidge(), n_estimators=10, random_state=29) #slow, and it is better to use DTR
         #clf = ARDRegression() ### muito muito lento, mas promissor
-        #clf = GradientBoostingRegressor(n_estimators=100, random_state=29) #power ultra foda for view
-        #clf = BayesianRidge(copy_X=True)  ### Parece excelente escolha
-        #clf = DecisionTreeRegressor(max_depth=8, random_state=29) #Train RMSLE: 0.82938537579
+        #clf = GradientBoostingRegressor(n_estimators=500, random_state=29) #power ultra foda for view   0.621912412155 (norm) / 0.581863999909 (not norm)
+        #clf = GridSearchCV(GradientBoostingRegressor(random_state=29), {'n_estimators':[100,300,500,1000]}, cv=10, scoring=my_custom_scorer)
+
+        #clf = BayesianRidge(copy_X=True)  ### Parece excelente escolha  0.613379421003 (normalized) / 1.10301003297 (not norm)
+        #clf = GridSearchCV(BayesianRidge(copy_X=True), {'n_iter':[100,300],'alpha_1':[0.01,0.001,0.000001], 'alpha_2':[0.01,0.001,0.000001]})
+
         
+        clf = DecisionTreeRegressor(max_depth=8, random_state=29) #Train RMSLE: 0.532701105932 (normalized) / 0.506345224723 (not norm)
+        #clf = GridSearchCV(DecisionTreeRegressor(random_state=29), {'max_depth':[2,6,8,15,30]}, cv=10, scoring=my_custom_scorer)
+
         #clf = LassoLars(alpha=1) # to use it for comments? it seems to predict the same value for all data, but gives the best value for comments
         #clf = Lasso(alpha = 0.01) # does a good job
         #clf = MultiTaskLasso(alpha=0.001)
@@ -197,50 +212,55 @@ def predict(X, y, Xtest=None, clf=None):
         #plt.show()
 
         clf.fit(X, y)
+        #print clf.best_params_
+        
         predictions = clf.predict(X)
 
     predictions[ predictions < 0 ] = 0.0
     #y_2 = clf_2.predict(X)
     return predictions
 
+if trainingStats:
 
-xvotes_train, xvotes_test, yvotes_train, yvotes_test = train_test_split(X, y_votes, test_size=0.20, random_state=29)
-xcomments_train, xcomments_test, ycomments_train, ycomments_test = train_test_split(X, y_comments, test_size=0.20, random_state=29)
-xviews_train, xviews_test, yviews_train, yviews_test = train_test_split(X, y_views, test_size=0.20, random_state=29)
+    xvotes_train, xvotes_test, yvotes_train, yvotes_test = train_test_split(X, y_votes, test_size=0.20, random_state=29)
+    xcomments_train, xcomments_test, ycomments_train, ycomments_test = train_test_split(X, y_comments, test_size=0.20, random_state=29)
+    xviews_train, xviews_test, yviews_train, yviews_test = train_test_split(X, y_views, test_size=0.20, random_state=29)
 
-print "Predicting views  ",
-pred_views = predict(xviews_train, yviews_train)#, clf=GradientBoostingRegressor(n_estimators=300, random_state=29))
-pred_views = predict(xviews_train, yviews_train, xviews_test)#, clf=GradientBoostingRegressor(n_estimators=300, random_state=29))
-#pred_views = predict(xviews_train, yviews_train, clf=Lasso(alpha=0.1))
-#pred_views = predict(xviews_train, yviews_train, xviews_test, clf=Lasso(alpha=0.1))
+    print "Predicting views  ",
+    
+    pred_views = predict(xviews_train, yviews_train)
+    pred_views = predict(xviews_train, yviews_train, xviews_test)
+    #pred_views = predict(xviews_train, yviews_train, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
+    #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
+    #pred_views = predict(xviews_train, yviews_train, clf=Lasso(alpha=0.1))
+    #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=Lasso(alpha=0.1))
 
-print "Predicting votes  ",
-pred_votes = predict(xvotes_train, yvotes_train)
-pred_votes = predict(xvotes_train, yvotes_train, xvotes_test)
+    print "Predicting votes  ",
+    pred_votes = predict(xvotes_train, yvotes_train)
+    pred_votes = predict(xvotes_train, yvotes_train, xvotes_test)
 
-print "Predicting comments  ",
-pred_comments = predict(xcomments_train, ycomments_train)
-pred_comments = predict(xcomments_train, ycomments_train, xcomments_test)
+    print "Predicting comments  ",
+    pred_comments = predict(xcomments_train, ycomments_train)
+    pred_comments = predict(xcomments_train, ycomments_train, xcomments_test)
 
-predictions = np.column_stack((pred_votes, pred_comments, pred_views))
-actuals = np.column_stack((yvotes_test, ycomments_test, yviews_test))
+    predictions = np.column_stack((pred_votes, pred_comments, pred_views))
+    actuals = np.column_stack((yvotes_test, ycomments_test, yviews_test))
 
-print "Distributions for training data:"
-print "Views Mean %f, Median %f" % (np.mean(y_views), np.median(y_views))
-print "Votes Mean %f, Median %f" % (np.mean(y_votes), np.median(y_votes))
-print "Comments Mean %f, Median %f" % (np.mean(y_comments), np.median(y_comments))
+    print "Distributions for training data:"
+    print "Views Mean %f, Median %f, Max %f" % (np.mean(y_views), np.median(y_views), np.max(y_views))
+    print "Votes Mean %f, Median %f, Max %f" % (np.mean(y_votes), np.median(y_votes), np.max(y_votes))
+    print "Comments Mean %f, Median %f, Max %f" % (np.mean(y_comments), np.median(y_comments), np.max(y_comments))
 
-print "Predictions from the training:"
-print "Views Mean %f, Median %f" % (np.mean(pred_views), np.median(pred_views))
-print "Votes Mean %f, Median %f" % (np.mean(pred_votes), np.median(pred_votes))
-print "Comments Mean %f, Median %f" % (np.mean(pred_comments), np.median(pred_comments))
+    print "Predictions from the training:"
+    print "Views Mean %f, Median %f, Max %f" % (np.mean(pred_views), np.median(pred_views), np.max(pred_views))
+    print "Votes Mean %f, Median %f, Max %f" % (np.mean(pred_votes), np.median(pred_votes), np.max(pred_votes))
+    print "Comments Mean %f, Median %f, Max %f" % (np.mean(pred_comments), np.median(pred_comments), np.max(pred_comments))
 
-elements = yvotes_test.shape[0]
-print "Baseline --- all zeros", calculateRMSLE(actuals, np.zeros(3*elements).reshape(elements,3))
-print "Train RMSLE:", calculateRMSLE(actuals, predictions)
+    elements = yvotes_test.shape[0]
+    print "Baseline --- all zeros", calculateRMSLE(actuals, np.zeros(3*elements).reshape(elements,3))
+    print "Train RMSLE:", calculateRMSLE(actuals, predictions)
 
-#import sys
-#sys.exit(0)
+    sys.exit(0)
 
 inTest = csv.reader( open("test.csv", "rb") )
 header = inTest.next()
@@ -288,19 +308,21 @@ test_times = np.array(test_times).astype(int)
 
 #Xtest = np.column_stack((dt,st,tt,test_times))
 #Xtest = np.column_stack((test_text,test_times,test_Xcity,test_XminDists))
+test_Xsource = sourcepca.transform(test_Xsource)
 Xtest = np.column_stack((test_text,test_times,test_Xcity,test_XminDists,test_Xsource))
 
+if normalizeit:
+    Xtest = normalize(Xtest)
 #Xtest = svd.transform(Xtest)
 
 test_pred_votes = predict(X, y_votes, Xtest)
 test_pred_comments = predict(X, y_comments, Xtest)
 test_pred_views = predict(X, y_views, Xtest)
 
-
 print "Predictions from the test:"
-print "Views Mean %f, Median %f" % (np.mean(test_pred_views), np.median(test_pred_views))
-print "Votes Mean %f, Median %f" % (np.mean(test_pred_votes), np.median(test_pred_votes))
-print "Comments Mean %f, Median %f" % (np.mean(test_pred_comments), np.median(test_pred_comments))
+print "Views Mean %f, Median %f, Max %f" % (np.mean(test_pred_views), np.median(test_pred_views), np.max(test_pred_views))
+print "Votes Mean %f, Median %f, Max %f" % (np.mean(test_pred_votes), np.median(test_pred_votes), np.max(test_pred_votes))
+print "Comments Mean %f, Median %f, Max %f" % (np.mean(test_pred_comments), np.median(test_pred_comments), np.max(test_pred_comments))
 
 outfile = open("output.csv", "wb")
 open_file_object = csv.writer(outfile)
