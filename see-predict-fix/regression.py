@@ -126,7 +126,7 @@ tfidf = TfidfTransformer()
 #tt = vectorizer.fit_transform(tags).toarray()
 #text = vectorizer.fit_transform(alltext).toarray()
 text = tfidf.fit_transform(vectorizer.fit_transform(alltext).toarray()).toarray()
-times = scale(np.array(times).astype(int))
+times = np.array(times).astype(int)
 
 #X = np.column_stack((text,times,Xcity))
 sourcepca = PCA(n_components=5, whiten=False)
@@ -172,7 +172,8 @@ def predict(X, y, Xtest=None, clf=None, i=0):
             clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=8), n_estimators=100, random_state=29) #best for view so far
 
         elif i == 2:
-            clf = ARDRegression() ### muito muito lento, mas promissor
+            #clf = ARDRegression() ### muito muito lento, mas promissor
+            clf = DecisionTreeRegressor(max_depth=3, random_state=29) #Train RMSLE: 0.532701105932 (normalized) / 0.506345224723 (not norm)
 
         elif i == 3:
             clf2 = GradientBoostingRegressor(n_estimators=500, random_state=29) #power ultra foda for view   0.621912412155 (norm) / 0.581863999909 (not norm)
@@ -263,45 +264,49 @@ def predict(X, y, Xtest=None, clf=None, i=0):
 
 if trainingStats:
 
-    xvotes_train, xvotes_test, yvotes_train, yvotes_test = train_test_split(X, y_votes, test_size=0.20, random_state=29)
-    xcomments_train, xcomments_test, ycomments_train, ycomments_test = train_test_split(X, y_comments, test_size=0.20, random_state=29)
-    xviews_train, xviews_test, yviews_train, yviews_test = train_test_split(X, y_views, test_size=0.20, random_state=29)
-
     for i in range(12):
         print "Iteration ", i
+        results = [] 
+        for j in range(5):
+        
+            xvotes_train, xvotes_test, yvotes_train, yvotes_test = train_test_split(X, y_votes, test_size=0.20, random_state=j)
+            xcomments_train, xcomments_test, ycomments_train, ycomments_test = train_test_split(X, y_comments, test_size=0.20, random_state=j)
+            xviews_train, xviews_test, yviews_train, yviews_test = train_test_split(X, y_views, test_size=0.20, random_state=j)
 
-        print "Predicting views  ",
-        pred_views = predict(xviews_train, yviews_train,i=i)
-        pred_views = predict(xviews_train, yviews_train, xviews_test,i=i)
-        #pred_views = predict(xviews_train, yviews_train, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
-        #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
-        #pred_views = predict(xviews_train, yviews_train, clf=Lasso(alpha=0.1))
-        #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=Lasso(alpha=0.1))
+            #print "Predicting views  ",
+            #pred_views = predict(xviews_train, yviews_train,i=i)
+            pred_views = predict(xviews_train, yviews_train, xviews_test,i=i)
+            #pred_views = predict(xviews_train, yviews_train, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
+            #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=GradientBoostingRegressor(n_estimators=500, random_state=29))
+            #pred_views = predict(xviews_train, yviews_train, clf=Lasso(alpha=0.1))
+            #pred_views = predict(xviews_train, yviews_train, xviews_test, clf=Lasso(alpha=0.1))
 
-        print "Predicting votes  ",
-        pred_votes = predict(xvotes_train, yvotes_train,i=i)
-        pred_votes = predict(xvotes_train, yvotes_train, xvotes_test,i=i)
+            #print "Predicting votes  ",
+            #pred_votes = predict(xvotes_train, yvotes_train,i=i)
+            pred_votes = predict(xvotes_train, yvotes_train, xvotes_test,i=i)
 
-        print "Predicting comments  ",
-        pred_comments = predict(xcomments_train, ycomments_train,i=i)
-        pred_comments = predict(xcomments_train, ycomments_train, xcomments_test,i=i)
+            #print "Predicting comments  ",
+            #pred_comments = predict(xcomments_train, ycomments_train,i=i)
+            pred_comments = predict(xcomments_train, ycomments_train, xcomments_test,i=i)
 
-        predictions = np.column_stack((pred_votes, pred_comments, pred_views))
-        actuals = np.column_stack((yvotes_test, ycomments_test, yviews_test))
+            predictions = np.column_stack((pred_votes, pred_comments, pred_views))
+            actuals = np.column_stack((yvotes_test, ycomments_test, yviews_test))
 
-        print "Distributions for training data:"
-        print "Views Mean %f, Median %f, Max %f" % (np.mean(y_views), np.median(y_views), np.max(y_views))
-        print "Votes Mean %f, Median %f, Max %f" % (np.mean(y_votes), np.median(y_votes), np.max(y_votes))
-        print "Comments Mean %f, Median %f, Max %f" % (np.mean(y_comments), np.median(y_comments), np.max(y_comments))
+            #print "Distributions for training data:"
+            #print "Views Mean %f, Median %f, Max %f" % (np.mean(y_views), np.median(y_views), np.max(y_views))
+            #print "Votes Mean %f, Median %f, Max %f" % (np.mean(y_votes), np.median(y_votes), np.max(y_votes))
+            #print "Comments Mean %f, Median %f, Max %f" % (np.mean(y_comments), np.median(y_comments), np.max(y_comments))
 
-        print "Predictions from the training:"
-        print "Views Mean %f, Median %f, Max %f" % (np.mean(pred_views), np.median(pred_views), np.max(pred_views))
-        print "Votes Mean %f, Median %f, Max %f" % (np.mean(pred_votes), np.median(pred_votes), np.max(pred_votes))
-        print "Comments Mean %f, Median %f, Max %f" % (np.mean(pred_comments), np.median(pred_comments), np.max(pred_comments))
+            #print "Predictions from the training:"
+            #print "Views Mean %f, Median %f, Max %f" % (np.mean(pred_views), np.median(pred_views), np.max(pred_views))
+            #print "Votes Mean %f, Median %f, Max %f" % (np.mean(pred_votes), np.median(pred_votes), np.max(pred_votes))
+            #print "Comments Mean %f, Median %f, Max %f" % (np.mean(pred_comments), np.median(pred_comments), np.max(pred_comments))
 
-        elements = yvotes_test.shape[0]
-        print "Baseline --- all zeros", calculateRMSLE(actuals, np.zeros(3*elements).reshape(elements,3))
-        print "Train RMSLE:", calculateRMSLE(actuals, predictions)
+            elements = yvotes_test.shape[0]
+            #print "Baseline --- all zeros", calculateRMSLE(actuals, np.zeros(3*elements).reshape(elements,3))
+            #print "Train RMSLE:",
+            results.append(calculateRMSLE(actuals, predictions))
+        print "RMSLE final ---> ", np.mean(results)
 
     sys.exit(0)
 
