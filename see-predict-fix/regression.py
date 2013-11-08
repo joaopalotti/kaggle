@@ -4,7 +4,6 @@ from collections import Counter
 import numpy as np
 from datetime import datetime
 
-from deap import algorithms, base, creator, tools, gp
 from sklearn.cross_validation import cross_val_score, KFold, train_test_split
 
 from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer, CountVectorizer
@@ -172,8 +171,8 @@ def predict(X, y, Xtest=None, clf=None):
         #clf = GridSearchCV(BayesianRidge(copy_X=True), {'n_iter':[100,300],'alpha_1':[0.01,0.001,0.000001], 'alpha_2':[0.01,0.001,0.000001]})
 
         
-        clf = DecisionTreeRegressor(max_depth=8, random_state=29) #Train RMSLE: 0.532701105932 (normalized) / 0.506345224723 (not norm)
-        #clf = GridSearchCV(DecisionTreeRegressor(random_state=29), {'max_depth':[2,6,8,15,30]}, cv=10, scoring=my_custom_scorer)
+        #clf = DecisionTreeRegressor(max_depth=8, random_state=29) #Train RMSLE: 0.532701105932 (normalized) / 0.506345224723 (not norm)
+        clf = GridSearchCV(DecisionTreeRegressor(random_state=29), {'max_depth':[3,8,30]}, cv=5, scoring=my_custom_scorer)
 
         #clf = LassoLars(alpha=1) # to use it for comments? it seems to predict the same value for all data, but gives the best value for comments
         #clf = Lasso(alpha = 0.01) # does a good job
@@ -191,6 +190,7 @@ def predict(X, y, Xtest=None, clf=None):
 
     if Xtest != None:
         clf.fit(X, y)
+        print clf.best_params_
         predictions = clf.predict(Xtest)
     else:
         print "Cross val score -- ", np.mean(cross_val_score(clf, X, y, cv=5, n_jobs=-1, scoring=my_custom_scorer))
