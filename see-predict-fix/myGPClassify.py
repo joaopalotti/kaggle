@@ -6,7 +6,7 @@ import sys, random, operator, math, csv
 from deap import algorithms, base, creator, tools, gp
 from optparse import OptionParser
 
-usingScoop = False
+usingScoop = True
 
 '''
 The goal of this version is to separate the Simple English from the English Wikipedia as much as possible.
@@ -62,6 +62,12 @@ def saveDiff(a,b):
 def absDiff(a,b):
     return abs(a-b)
 
+def saveLog(a):
+    if a >= 1:
+        return math.log(a)
+    else:
+        return 0.0
+
 def getInputFile(fileName):
     
     file = open(fileName,"rb")
@@ -87,6 +93,7 @@ pset.addPrimitive(operator.add, 2)
 pset.addPrimitive(operator.mul, 2)
 pset.addPrimitive(absDiff, 2)
 pset.addPrimitive(saveDiff, 2)
+pset.addPrimitive(saveLog, 1)
 
 def myEphemeral():
     return random.random()
@@ -130,9 +137,9 @@ def calculateRMSLE(rows, predictions):
         #print predict + 1)
         #print predict + 1
         #print example[-1] + 1
-        supersum += math.pow( math.log(predict + 1) - math.log(example[-1] + 1), 2 )
-        #supersum += math.pow( math.log(predict + 1) - math.log(example[1] + 1), 2)
-        #supersum += math.pow( math.log(predict + 1) - math.log(example[2] + 1), 2)
+        supersum += math.pow( math.log(predict + 1) - math.log(example[-1] + 1), 2)
+        #supersum += math.pow( math.log(predict + 1) - math.log(example[-2] + 1), 2)
+        #supersum += math.pow( math.log(predict + 1) - math.log(example[-3] + 1), 2)
     
     rmsle = math.sqrt( 1.0 / (examples) * supersum )
     #print rmsle

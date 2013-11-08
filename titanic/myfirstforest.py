@@ -159,14 +159,18 @@ def aumenta(X, y, test):
     
     extra_probas, svc_probas, lrc_probas, knn_probas, nb_probas = gridSearchTestData(X,y,test)
     print "Shapes --> ", extra_probas.shape, svc_probas.shape, lrc_probas.shape, knn_probas.shape, nb_probas.shape
-    thresold = 0.97
+    thresold = 0.95
 
     # Test examples that are 0
-    zeros = test[(extra_probas[:,0] >= thresold) | (svc_probas[:,0] >= thresold) | (lrc_probas[:,0] >= thresold) | (knn_probas[:,0] >= thresold) | (nb_probas[:,0] >= thresold)]
+    #zeros = test[(extra_probas[:,0] >= thresold) & (svc_probas[:,0] >= thresold) & (lrc_probas[:,0] >= thresold) & (knn_probas[:,0] >= thresold) & (nb_probas[:,0] >= thresold)]
+    zeros = test[(extra_probas[:,0] >= thresold) | (lrc_probas[:,0] >= thresold)]
     # Test examples that are 1
-    ones = test[(extra_probas[:,1] >= thresold) | (svc_probas[:,1] >= thresold) | (lrc_probas[:,1] >= thresold) | (knn_probas[:,1] >= thresold) | (nb_probas[:,1] >= thresold) ]
+    #ones = test[(extra_probas[:,1] >= thresold) & (svc_probas[:,1] >= thresold) & (lrc_probas[:,1] >= thresold) & (knn_probas[:,1] >= thresold) & (nb_probas[:,1] >= thresold) ]
+    ones = test[(extra_probas[:,1] >= thresold) | (lrc_probas[:,1] >= thresold) ]
 
-    rest = test[((extra_probas[:,1] < thresold) & (svc_probas[:,1] < thresold) & (lrc_probas[:,1] < thresold) & (knn_probas[:,1] < thresold) & (nb_probas[:,1] < thresold)) | ((extra_probas[:,0] < thresold) & (svc_probas[:,0] < thresold) & (lrc_probas[:,0] < thresold) & (knn_probas[:,0] < thresold) & (nb_probas[:,0] < thresold) )]
+    #rest = test[((extra_probas[:,1] < thresold) | (svc_probas[:,1] < thresold) | (lrc_probas[:,1] < thresold) | (knn_probas[:,1] < thresold) | (nb_probas[:,1] < thresold)) & ((extra_probas[:,0] < thresold) | (svc_probas[:,0] < thresold) | (lrc_probas[:,0] < thresold) | (knn_probas[:,0] < thresold) & (nb_probas[:,0] < thresold) )]
+    #rest = test[((extra_probas[:,1] < thresold) & (extra_probas[:,0] < thresold)) | ((lrc_probas[:,1] < thresold) & (lrc_probas[:,0] < thresold))]
+    rest = test
     before = X.shape[0]
     print "Before =", before
     X = np.vstack((X,zeros))
@@ -184,7 +188,7 @@ i = 0
 isIncreasing = True
 lastSize = X.shape[0]
 
-while isIncreasing:
+while isIncreasing and i < 10:
     i += 1
     print "i = ", i
     X, y, rest_test = aumenta(X, y, rest_test)
@@ -193,8 +197,8 @@ while isIncreasing:
     lastSize = X.shape[0]
 
 
-def ensemble(lrc_probas, extra_probas, svm_probas, nb_probas, knn_probas):
-    probas = lrc_probas + extra_probas + svm_probas + nb_probas + knn_probas
+def ensemble(lrc_probas, extra_probas, svc_probas, nb_probas, knn_probas):
+    probas = lrc_probas + extra_probas + svc_probas + nb_probas + knn_probas
     probasFinal = probas[:,0] < probas[:,1]
     probasFinal = probasFinal.astype(int)
     return probasFinal
@@ -203,7 +207,9 @@ print 'Predicting'
 extra_probas, svc_probas, lrc_probas, knn_probas, nb_probas = gridSearchTestData(X,y,test_data)
 output = ensemble(lrc_probas, extra_probas, svc_probas, nb_probas, knn_probas)
 
-open_file_object = csv.writer(open("forest.csv", "wb"))
+outfile = open("outfile.csv", "wb")
+open_file_object = csv.writer(outfile)
 open_file_object.writerow(["PassengerId","Survived"])
 open_file_object.writerows(zip(ids, output))
+outfile.close()
 

@@ -167,7 +167,8 @@ def predict(X, y, Xtest=None, clf=None, i=0):
     if clf == None:
         if i == 0:
             clf = DecisionTreeRegressor(max_depth=8, random_state=29) #Train RMSLE: 0.532701105932 (normalized) / 0.506345224723 (not norm)
-            #clf = GridSearchCV(DecisionTreeRegressor(random_state=29), {'max_depth':[2,8,30]}, cv=10, scoring=my_custom_scorer)
+            #clf = GridSearchCV(DecisionTreeRegressor(random_state=29), {'max_depth':[3,8,30]}, cv=10, scoring=my_custom_scorer)
+        
         elif i == 1:
             clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=8), n_estimators=100, random_state=29) #best for view so far
 
