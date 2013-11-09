@@ -154,6 +154,46 @@ for row in data[0:-1:1]:
     sourceL.append(findSource(source))
 
 
+ntags = np.array(ntags)
+sumDes = np.array(sumDes)
+
+def classify(sumDes, ntags, subject):
+
+    xna = sumDes[ ntags == 'NA']
+    xthing = sumDes[ntags == subject]
+    xnthing = sumDes[ (ntags != 'NA') & (ntags != subject)]
+
+    X = np.hstack((xthing, xnthing))
+    y = np.hstack((np.ones(xthing.shape[0]), np.zeros(xnthing.shape[0])))
+
+    vectorizer = CountVectorizer(max_features=100, stop_words="english", strip_accents="ascii")
+    X = vectorizer.fit_transform(X).toarray()
+    xna = vectorizer.transform(xna).toarray()
+
+    from sklearn.ensemble import ExtraTreesClassifier
+    pred = (ExtraTreesClassifier().fit(X,y).predict_proba(xna)[:,1] > 0.91).astype(str)
+    print pred
+    print "Transformed ---> ", pred[pred == "True"].shape[0]
+    pred[ pred == 'True'] = subject
+    pred[ pred == 'False' ] = 'NA'
+
+    ntags[ ntags == 'NA'] = pred
+    
+    return ntags
+
+
+classes =  ['trash', 'tree', 'pothole', 'graffiti', 'street_light', 'hydrant', 'signs', 'overgrowth', 'sidewalk' , 'blighted_property' , 'traffic' , 'snow' , 'drain_problem' , 'road_safety' , 'bridge' , 'bike_concern' , 'homeless' , 'flood' , 'abandoned_vehicle' , 'abandoned_vehicles' , 'crosswalk' , 'drug_dealing' , 'robbery' , 'parking_meter' , 'bench' , 'animal_problem' , 'odor' , 'noise_complaint' , 'test' , 'illegal_idling' , 'street_signal' , 'rodents' , 'heat' , 'prostitution' , 'roadkill' , 'bad_driving' , 'pedestrian_light' , 'zoning' , 'lost_and_found' , 'public_art' , 'public_concern' , 'other']
+
+for c in classes:
+    print "Tag --> ", c
+    print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
+    ntags = classify(sumDes, ntags, c)
+
+tags = []
+for tag in ntags:
+    tags.append(findTag(tag))
+
+
 ohe = OneHotEncoder()
 sohe = OneHotEncoder()
 tohe = OneHotEncoder()
@@ -191,6 +231,7 @@ textpca = PCA(n_components=20)
 
 Xsource = sourcepca.fit_transform(Xsource)
 #X = np.column_stack((text,times,Xcity,Xsource)) # XminDists is bad for small data
+xxxx
 X = np.column_stack((text,times,Xcity,XminDists,Xsource,Xtags))
 #X = np.column_stack((text,times,Xcity,XminDists,Xsource))
 #X = np.column_stack((text,times,Xcity,XminDists,Xsource))
@@ -204,7 +245,6 @@ if normalizeit:
     X = normalize(X)
 #X = svd.fit_transform(X)
 #X = pca.fit_transform(X)
-aaa
 print "X created"
 
 def calculateRMSLE(actuals, predictions):
@@ -379,6 +419,7 @@ testData = [row for row in inTest]
 test_descriptions = []
 test_summaries = []
 test_times = []
+test_ntags = []
 test_tags = []
 ids = []
 test_alltext = []
@@ -400,6 +441,7 @@ for row in testData:
     test_descriptions.append(description)
     test_times.append(timediff)
     test_tags.append(findTag(tag_type))
+    test_ntags.append(tag_type)
     ids.append(id)
 
     #doing something with the latidute and longitude
@@ -407,6 +449,16 @@ for row in testData:
     test_city.append(cityName)
     test_minDists.append(minDist)
     test_sourceL.append(findSource(source))
+
+
+for c in classes:
+    print "Tag --> ", c
+    print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
+    ntags = classify(sumDes, ntags, c)
+
+test_tags = []
+for tag in test_ntags:
+    test_tags.append(findTag(tag))
 
 test_Xcity = ohe.transform(test_city).toarray()
 test_Xsource = sohe.transform(test_sourceL).toarray()
