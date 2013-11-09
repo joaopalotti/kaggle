@@ -5,7 +5,6 @@ import numpy as np
 from datetime import datetime
 
 from sklearn.cross_validation import cross_val_score, KFold, train_test_split
-
 from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer, CountVectorizer
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor
@@ -127,6 +126,9 @@ def findTag(tag):
     else:
         return [99]
 
+#TODO: add this other classes: classes =  ['trash', 'tree', 'pothole', 'graffiti', 'street_light', 'hydrant', 'signs', 'overgrowth', 'sidewalk' , 'blighted_property' , 'traffic' , 'snow' , 'drain_problem' , 'road_safety' , 'bridge' , 'bike_concern' , 'homeless' , 'flood' , 'abandoned_vehicle' , 'abandoned_vehicles' , 'crosswalk' , 'drug_dealing' , 'robbery' , 'parking_meter' , 'bench' , 'animal_problem' , 'odor' , 'noise_complaint' , 'test' , 'illegal_idling' , 'street_signal' , 'rodents' , 'heat' , 'prostitution' , 'roadkill' , 'bad_driving' , 'pedestrian_light' , 'zoning' , 'lost_and_found' , 'public_art' , 'public_concern' , 'other']
+
+
 for row in data[0:-1:1]:
 #for row in data:
     #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
@@ -152,47 +154,99 @@ for row in data[0:-1:1]:
     city.append(cityName)
     minDists.append(minDist)
     sourceL.append(findSource(source))
-
-
 ntags = np.array(ntags)
 sumDes = np.array(sumDes)
 
-def classify(sumDes, ntags, subject):
+
+####  READ TEST:
+inTest = csv.reader( open("test.csv", "rb") )
+header = inTest.next()
+testData = [row for row in inTest]
+
+test_descriptions = []
+test_summaries = []
+test_times = []
+test_ntags = []
+test_tags = []
+ids = []
+test_alltext = []
+test_city = []
+test_minDists = []
+test_sourceL = []
+test_sumDes = []
+
+for row in testData:
+    #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
+    id, latitude, longitude, summary, description, source, created_time, tag_type = row
+
+    time = datetime.strptime(created_time, "%Y-%m-%d %H:%M:%S")
+    timediff = (lastTime - time).days
+
+    test_alltext.append(summary + " " + description + " " + tag_type)
+    test_sumDes.append(summary + " " + description)
+    test_summaries.append(summary)
+    test_descriptions.append(description)
+    test_times.append(timediff)
+    test_tags.append(findTag(tag_type))
+    test_ntags.append(tag_type)
+    ids.append(id)
+
+    #doing something with the latidute and longitude
+    cityName, minDist = findClosestCity(float(latitude), float(longitude))
+    test_city.append(cityName)
+    test_minDists.append(minDist)
+    test_sourceL.append(findSource(source))
+test_ntags = np.array(test_ntags)
+test_sumDes = np.array(test_sumDes)
+
+
+def classify(sumDes, ntags, t_sumDes, t_ntags, subject):
 
     xna = sumDes[ ntags == 'NA']
     xthing = sumDes[ntags == subject]
     xnthing = sumDes[ (ntags != 'NA') & (ntags != subject)]
 
-    X = np.hstack((xthing, xnthing))
-    y = np.hstack((np.ones(xthing.shape[0]), np.zeros(xnthing.shape[0])))
+    t_xna = t_sumDes [ t_ntags == 'NA' ]
+    t_xthing = t_sumDes[ t_ntags == subject]
+    t_xnthing = t_sumDes[ (t_ntags != 'NA') & (t_ntags != subject)]
+
+    X = np.hstack((xthing, xnthing, t_xthing, t_xnthing))
+    y = np.hstack((np.ones(xthing.shape[0]), np.zeros(xnthing.shape[0]), np.ones(t_xthing.shape[0]), np.zeros(t_xnthing.shape[0])))
 
     vectorizer = CountVectorizer(max_features=100, stop_words="english", strip_accents="ascii")
     X = vectorizer.fit_transform(X).toarray()
     xna = vectorizer.transform(xna).toarray()
+    t_xna = vectorizer.transform(t_xna).toarray()
 
     from sklearn.ensemble import ExtraTreesClassifier
-    pred = (ExtraTreesClassifier().fit(X,y).predict_proba(xna)[:,1] > 0.91).astype(str)
-    print pred
+    pred = (ExtraTreesClassifier().fit(X,y).predict_proba(xna)[:,1] > 0.95).astype(str)
+    t_pred = (ExtraTreesClassifier().fit(X,y).predict_proba(t_xna)[:,1] > 0.95).astype(str)
+    
     print "Transformed ---> ", pred[pred == "True"].shape[0]
     pred[ pred == 'True'] = subject
+    t_pred[ t_pred == 'True'] = subject
     pred[ pred == 'False' ] = 'NA'
+    t_pred[ t_pred == 'False' ] = 'NA'
 
     ntags[ ntags == 'NA'] = pred
+    t_ntags[ t_ntags == 'NA'] = t_pred
     
-    return ntags
+    return ntags, t_ntags
 
 
 classes =  ['trash', 'tree', 'pothole', 'graffiti', 'street_light', 'hydrant', 'signs', 'overgrowth', 'sidewalk' , 'blighted_property' , 'traffic' , 'snow' , 'drain_problem' , 'road_safety' , 'bridge' , 'bike_concern' , 'homeless' , 'flood' , 'abandoned_vehicle' , 'abandoned_vehicles' , 'crosswalk' , 'drug_dealing' , 'robbery' , 'parking_meter' , 'bench' , 'animal_problem' , 'odor' , 'noise_complaint' , 'test' , 'illegal_idling' , 'street_signal' , 'rodents' , 'heat' , 'prostitution' , 'roadkill' , 'bad_driving' , 'pedestrian_light' , 'zoning' , 'lost_and_found' , 'public_art' , 'public_concern' , 'other']
 
-for c in classes:
-    print "Tag --> ", c
-    print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
-    ntags = classify(sumDes, ntags, c)
+print "Repeating 5 times:"
+for x in range(5):
+    for c in classes:
+        print "Tag --> ", c
+        print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
+        print "t_#NA ---> ", test_ntags[test_ntags == 'NA'].shape[0]
+        ntags, test_ntags = classify(sumDes, ntags, test_sumDes, test_ntags, c)
 
 tags = []
 for tag in ntags:
     tags.append(findTag(tag))
-
 
 ohe = OneHotEncoder()
 sohe = OneHotEncoder()
@@ -205,18 +259,17 @@ XminDists = np.array(minDists)
 #vectorizer = HashingVectorizer(n_features=100, strip_accents="ascii")  # training: 0.971392246367
 #vectorizer = HashingVectorizer(n_features=1000, strip_accents="ascii")
 #vectorizer = HashingVectorizer(n_features=2000, strip_accents="ascii")
-vectorizer = CountVectorizer(max_features=100, stop_words="english", strip_accents="ascii")#, analyzer='char_wb') #seems good for big data
-tfidf = TfidfTransformer()
+#vectorizer = CountVectorizer(max_features=100, stop_words="english", strip_accents="ascii")#, analyzer='char_wb') #seems good for big data
+#tfidf = TfidfTransformer()
 
 #dt = vectorizer.fit_transform(descriptions).toarray()
 #st = vectorizer.fit_transform(summaries).toarray()
 #tt = vectorizer.fit_transform(tags).toarray()
 #text = vectorizer.fit_transform(alltext).toarray()
-text = vectorizer.fit_transform(sumDes).toarray()
+#text = vectorizer.fit_transform(sumDes).toarray()
 Xtags = tohe.fit_transform(tags).toarray()
 
 #text = tfidf.fit_transform(vectorizer.fit_transform(alltext).toarray()).toarray()
-
 
 times = np.array(times).astype(int)
 #X = np.column_stack((text,times,Xcity))
@@ -231,8 +284,9 @@ textpca = PCA(n_components=20)
 
 Xsource = sourcepca.fit_transform(Xsource)
 #X = np.column_stack((text,times,Xcity,Xsource)) # XminDists is bad for small data
-xxxx
-X = np.column_stack((text,times,Xcity,XminDists,Xsource,Xtags))
+
+X = np.column_stack((times,Xcity,Xsource,Xtags))
+#X = np.column_stack((text,times,Xcity,XminDists,Xsource,Xtags))
 #X = np.column_stack((text,times,Xcity,XminDists,Xsource))
 #X = np.column_stack((text,times,Xcity,XminDists,Xsource))
 #X = np.column_stack((text,times,Xcity,XminDists))
@@ -252,6 +306,8 @@ def calculateRMSLE(actuals, predictions):
     return math.sqrt( 1.0 / (3 * predictions.shape[0]) * np.sum(np.power(np.log((predictions + 1)) - np.log((actuals + 1)), 2))) 
  
 my_custom_scorer = make_scorer(calculateRMSLE, greater_is_better=True)
+
+xxxxx
 
 # Fit regression model
 def predict(X, y, Xtest=None, clf=None, i=-1):
@@ -323,7 +379,7 @@ def predict(X, y, Xtest=None, clf=None, i=-1):
         newX = np.row_stack((X,Xtest))
         #print newX.shape
         
-        print y.shape , predictions1.shape
+        print y.shape, predictions1.shape
         newY = np.hstack((y,predictions1))
         print newY.shape
 
@@ -412,44 +468,9 @@ if trainingStats:
 
     sys.exit(0)
 
-inTest = csv.reader( open("test.csv", "rb") )
-header = inTest.next()
-testData = [row for row in inTest]
 
-test_descriptions = []
-test_summaries = []
-test_times = []
-test_ntags = []
-test_tags = []
-ids = []
-test_alltext = []
-test_city = []
-test_minDists = []
-test_sourceL = []
-test_sumDes = []
 
-for row in testData:
-    #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
-    id, latitude, longitude, summary, description, source, created_time, tag_type = row
-
-    time = datetime.strptime(created_time, "%Y-%m-%d %H:%M:%S")
-    timediff = (lastTime - time).days
-
-    test_alltext.append(summary + " " + description + " " + tag_type)
-    test_sumDes.append(summary + " " + description)
-    test_summaries.append(summary)
-    test_descriptions.append(description)
-    test_times.append(timediff)
-    test_tags.append(findTag(tag_type))
-    test_ntags.append(tag_type)
-    ids.append(id)
-
-    #doing something with the latidute and longitude
-    cityName, minDist = findClosestCity(float(latitude), float(longitude))
-    test_city.append(cityName)
-    test_minDists.append(minDist)
-    test_sourceL.append(findSource(source))
-
+###### TEST:
 
 for c in classes:
     print "Tag --> ", c
@@ -462,20 +483,21 @@ for tag in test_ntags:
 
 test_Xcity = ohe.transform(test_city).toarray()
 test_Xsource = sohe.transform(test_sourceL).toarray()
-test_XminDists = np.array(test_minDists)
+#test_XminDists = np.array(test_minDists)
 
 #dt = vectorizer.transform(test_descriptions).toarray()
 #st = vectorizer.transform(test_summaries).toarray()
 #tt = vectorizer.transform(test_tags).toarray()
 #test_text = tfidf.transform(vectorizer.transform(test_alltext).toarray()).toarray()
-test_text = vectorizer.transform(test_sumDes).toarray()
+#test_text = vectorizer.transform(test_sumDes).toarray()
 test_Xtags = tohe.transform(test_tags).toarray()
 test_times = np.array(test_times).astype(int)
 
 #Xtest = np.column_stack((dt,st,tt,test_times))
 #Xtest = np.column_stack((test_text,test_times,test_Xcity,test_XminDists))
 test_Xsource = sourcepca.transform(test_Xsource)
-Xtest = np.column_stack((test_text,test_times,test_Xcity,test_XminDists,test_Xsource, test_Xtags))
+Xtest = np.column_stack((test_times,test_Xcity,test_Xsource, test_Xtags))
+#Xtest = np.column_stack((test_text,test_times,test_Xcity,test_XminDists,test_Xsource, test_Xtags))
 
 if normalizeit:
     Xtest = normalize(Xtest)
