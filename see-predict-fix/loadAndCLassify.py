@@ -19,12 +19,13 @@ from sklearn.preprocessing import OneHotEncoder, scale, normalize
 from sklearn.grid_search import GridSearchCV
 
 #(X,Xtest,y_views,y_comments,y_votes,ids) = pickle.load( open( "save.p", "rb" ) )
-(X, Xtest, y_views, y_comments, y_votes, ids, times, Xcity, Xsource, Xtags, test_times, test_Xcity, test_Xsource, test_Xtags) = pickle.load( open( "save.p", "rb" ) )
+#(X, Xtest, y_views, y_comments, y_votes, ids, times, Xcity, Xsource, Xtags, test_times, test_Xcity, test_Xsource, test_Xtags) 
+(X, Xtest, y_views, y_comments, y_votes, ids, times, hours, Xcity, Xsource, Xtags, test_times, test_Xcity, test_Xsource, test_Xtags, test_hours) = pickle.load( open( "save.p", "rb" ) )
 
-X = np.column_stack((times,Xcity,Xsource))
-Xtest = np.column_stack((test_times, test_Xcity, test_Xsource)) 
+X = np.column_stack((times,Xcity,Xsource, hours))
+Xtest = np.column_stack((test_times, test_Xcity, test_Xsource, test_hours)) 
 
-clf = GradientBoostingRegressor(n_estimators=50, loss="lad", max_depth=5, alpha=0.99, learning_rate=0.1)
+clf = GradientBoostingRegressor(n_estimators=20, loss="lad", max_depth=7, alpha=0.99, learning_rate=0.1)
 clf.fit(X, y_views)
 pred_views = clf.predict(Xtest)
 
