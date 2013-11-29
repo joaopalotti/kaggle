@@ -42,7 +42,8 @@ locations = []
 tags = []
 ntags = []
 alltext = []
-lastTime = datetime.strptime("2013-04-30 23:51:37", "%Y-%m-%d %H:%M:%S")
+#lastTime = datetime.strptime("2013-04-30 23:51:37", "%Y-%m-%d %H:%M:%S")
+lastTime = datetime.strptime("2013-10-01 00:00:00", "%Y-%m-%d %H:%M:%S")
 
 #Latitude and longitudes:
 #Chicago ==> 41.8819, -87.6278
@@ -53,6 +54,8 @@ city = []
 minDists = []
 sourceL = []
 sumDes = []
+lati = []
+longi = []
 
 def geoDist(lat, log, nlat, nlog):
     return math.sqrt( (lat-nlat) * (lat-nlat) + (log-nlog) * (log-nlog)  )
@@ -99,36 +102,88 @@ def findTag(tag):
         return [1]
     elif tag == 'tree':
         return [2]
-    elif tag == 'pothole' or tag == 'traffic':
+    elif tag == 'pothole':
         return [3]
-    elif tag == 'sidewalk':
-        return [3]
-    elif tag == 'graffiti':
+    elif tag == 'traffic':
         return [4]
-    elif tag == 'street_light':
+    elif tag == 'sidewalk':
         return [5]
-    elif tag == 'abandoned_vehicles' or tag == "abandoned_vehicle":
+    elif tag == 'graffiti':
         return [6]
-    elif tag == 'blighted_property':
+    elif tag == 'overgrowth':
         return [7]
-    elif tag == 'signs':
+    elif tag == 'abandoned_vehicles' or tag == "abandoned_vehicle":
         return [8]
-    elif tag == 'hydrant' or tag == 'drain_problem' or tag == 'flood':
+    elif tag == 'blighted_property':
         return [9]
-    elif tag == 'homeless':
+    elif tag == 'signs':
         return [10]
-    elif tag == 'bike_concern':
+    elif tag == 'crosswalk':
         return [11]
-    elif tag == 'snow':
+    elif tag == 'hydrant':
         return [12]
-    elif tag == 'drug_dealing' or tag == 'robbery':
+    elif tag == 'drain_problem':
         return [13]
+    elif tag == 'flood':
+        return [14]
+    elif tag == 'homeless':
+        return [15]
+    elif tag == 'bike_concern':
+        return [16]
+    elif tag == 'snow':
+        return [17]
+    elif tag == 'drug_dealing':
+        return [18]
+    elif tag == 'robbery':
+        return [19]
+    elif tag == "street_light":
+        return [20]
+    elif tag == 'road_safety':
+        return [21]
+    elif tag == 'parking_meter':
+        return [22]
+    elif tag == 'bench':
+        return [23]
+    elif tag == 'animal_problem':
+        return [24]
+    elif tag == 'odor':
+        return [25]
+    elif tag == 'noise_complaint':
+        return [26]
+    elif tag == 'test':
+        return [27]
+    elif tag == 'illegal_idling':
+        return [28]
+    elif tag == 'street_signal':
+        return [29]
+    elif tag == 'rodents':
+        return [30]
+    elif tag == 'heat':
+        return [31]
+    elif tag == 'prostitution':
+        return [32]
+    elif tag == 'roadkill':
+        return [33]
+    elif tag == 'bad_driving':
+        return [34]
+    elif tag == 'pedestrian_light':
+        return [35]
+    elif tag == 'zoning':
+        return [36]
+    elif tag == 'lost_and_found':
+        return [37]
+    elif tag == 'public_art':
+        return [38]
+    elif tag == 'public_concern':
+        return [39]
+    elif tag == 'other':
+        return [40]
+    elif tag == 'bridge':
+        return [41]
     else:
         return [99]
 
-#TODO: add this other classes: classes =  ['trash', 'tree', 'pothole', 'graffiti', 'street_light', 'hydrant', 'signs', 'overgrowth', 'sidewalk' , 'blighted_property' , 'traffic' , 'snow' , 'drain_problem' , 'road_safety' , 'bridge' , 'bike_concern' , 'homeless' , 'flood' , 'abandoned_vehicle' , 'abandoned_vehicles' , 'crosswalk' , 'drug_dealing' , 'robbery' , 'parking_meter' , 'bench' , 'animal_problem' , 'odor' , 'noise_complaint' , 'test' , 'illegal_idling' , 'street_signal' , 'rodents' , 'heat' , 'prostitution' , 'roadkill' , 'bad_driving' , 'pedestrian_light' , 'zoning' , 'lost_and_found' , 'public_art' , 'public_concern' , 'other']
-
-
+realtime = []
 for row in data[0:-1:1]:
 #for row in data:
     #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
@@ -137,6 +192,7 @@ for row in data[0:-1:1]:
     time = datetime.strptime(created_time, "%Y-%m-%d %H:%M:%S")
     timediff = (lastTime - time).days
 
+    realtime.append(time)
     votes.append(num_votes)
     comments.append(num_comments)
     views.append(num_views)
@@ -154,9 +210,13 @@ for row in data[0:-1:1]:
     city.append(cityName)
     minDists.append(minDist)
     sourceL.append(findSource(source))
+    lati.append(latitude)
+    longi.append(longitude)
+
 ntags = np.array(ntags)
 sumDes = np.array(sumDes)
-
+lati = np.array(lati).astype(float)
+longi = np.array(longi).astype(float)
 
 ####  READ TEST:
 inTest = csv.reader( open("test.csv", "rb") )
@@ -174,6 +234,9 @@ test_city = []
 test_minDists = []
 test_sourceL = []
 test_sumDes = []
+test_lati = []
+test_longi = []
+test_realtime = []
 
 for row in testData:
     #"id","latitude","longitude","summary","description","num_votes","num_comments","num_views","source","created_time","tag_type"
@@ -182,6 +245,7 @@ for row in testData:
     time = datetime.strptime(created_time, "%Y-%m-%d %H:%M:%S")
     timediff = (lastTime - time).days
 
+    test_realtime.append(time)
     test_alltext.append(summary + " " + description + " " + tag_type)
     test_sumDes.append(summary + " " + description)
     test_summaries.append(summary)
@@ -189,6 +253,8 @@ for row in testData:
     test_times.append(timediff)
     test_tags.append(findTag(tag_type))
     test_ntags.append(tag_type)
+    test_lati.append(latitude)
+    test_longi.append(longitude)
     ids.append(id)
 
     #doing something with the latidute and longitude
@@ -198,7 +264,9 @@ for row in testData:
     test_sourceL.append(findSource(source))
 test_ntags = np.array(test_ntags)
 test_sumDes = np.array(test_sumDes)
-
+test_lati = np.array(test_lati).astype(float)
+test_longi = np.array(test_longi).astype(float)
+test_times = np.array(test_times).astype(int)
 
 def classify(sumDes, ntags, t_sumDes, t_ntags, subject):
 
@@ -236,17 +304,17 @@ def classify(sumDes, ntags, t_sumDes, t_ntags, subject):
 
 classes =  ['trash', 'tree', 'pothole', 'graffiti', 'street_light', 'hydrant', 'signs', 'overgrowth', 'sidewalk' , 'blighted_property' , 'traffic' , 'snow' , 'drain_problem' , 'road_safety' , 'bridge' , 'bike_concern' , 'homeless' , 'flood' , 'abandoned_vehicle' , 'abandoned_vehicles' , 'crosswalk' , 'drug_dealing' , 'robbery' , 'parking_meter' , 'bench' , 'animal_problem' , 'odor' , 'noise_complaint' , 'test' , 'illegal_idling' , 'street_signal' , 'rodents' , 'heat' , 'prostitution' , 'roadkill' , 'bad_driving' , 'pedestrian_light' , 'zoning' , 'lost_and_found' , 'public_art' , 'public_concern' , 'other']
 
-print "Repeating 5 times:"
-for x in range(5):
-    for c in classes:
-        print "Tag --> ", c
-        print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
-        print "t_#NA ---> ", test_ntags[test_ntags == 'NA'].shape[0]
-        ntags, test_ntags = classify(sumDes, ntags, test_sumDes, test_ntags, c)
+#print "Repeating 5 times:"
+#for x in range(10):
+#    for c in classes:
+#        print "Tag --> ", c
+#        print "#NA ---> ", ntags[ntags == 'NA'].shape[0]
+#        print "t_#NA ---> ", test_ntags[test_ntags == 'NA'].shape[0]
+#        ntags, test_ntags = classify(sumDes, ntags, test_sumDes, test_ntags, c)
 
-tags = []
-for tag in ntags:
-    tags.append(findTag(tag))
+#tags = []
+#for tag in ntags:
+#    tags.append(findTag(tag))
 
 ohe = OneHotEncoder()
 sohe = OneHotEncoder()
